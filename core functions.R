@@ -21,9 +21,9 @@ head(GlobalRecovered)
 
 
 read.csv('data/novel-corona-virus-2019-dataset/time_series_covid_19_deaths_US.csv')
-
-
 list.files('data')
+
+
 
 
 # ---- Fix Datatypes ----x
@@ -93,6 +93,10 @@ c <- transmute(
 data <- full_join(a, b, by=c('date','country', 'group', 'value'))
 data <- full_join(data, c, by=c('date','country', 'group', 'value'))
 
+
+
+
+
 filter(data, country=='South Africa') %>%
 ggplot() + 
   geom_point(aes(x=date, y=value, col=group), alpha=0.6) +
@@ -127,19 +131,94 @@ us_data %>%
 
 
 
+# ---- Summary ----x
+
+
+
+
+data <- CovidDataSet %>%
+  transmute(country=Country.Region,
+            date=as.Date(as.character(Date), '%m/%d/%y'),
+            Confirmed=Confirmed,
+            Deaths=Deaths,
+            Recovered=Recovered)
+
+
+# finding top countries 
+ordered <- data %>% group_by(country) %>%
+  summarise(cases=max(Confirmed)) %>%
+  arrange(desc(cases))
+
+
+# filter
+sub <- data[data$country==as.character(ordered$country[1:10]),]
 
 
 
 
 
+# example
+country <- 'South Africa'
+sub <- data[data$country==country,]
+
+
+
+
+plot <- function(country, dataset) {
+  sub <- dataset[dataset$country==country,]
+  
+  ggplot(sub) +
+    geom_point(aes(x=date, y=Confirmed), col='steelblue', alpha=0.7) + 
+    geom_line(aes(x=date, y=Confirmed), col='steelblue', alpha=0.7) +
+    geom_point(aes(x=date, y=Recovered), col='Darkgreen', alpha=0.7) + 
+    geom_line(aes(x=date, y=Recovered), col='Darkgreen', alpha=0.7) +
+    geom_point(aes(x=date, y=Deaths), col='Darkred', alpha=0.7) +
+    geom_line(aes(x=date, y=Deaths), col='Darkred', alpha=0.7) +
+    theme_minimal() + ggtitle(paste('Covid Report: ', country)) +
+    theme(plot.title = element_text(hjust=0.5)) +
+    labs(y='Cases', x='Date')
+  
+}
+
+
+
+
+plot('South Africa', data)
 
 
 
 
 
+# ---- Model ----x
+country <- 'South Africa'
+sub <- data[data$country==country,]
+rownames(sub) <- 1:nrow(sub)
+
+model <- lm(Confirmed~date, data=sub)
+summary(model)
 
 
 
+
+yhat <- predict(model, sub)
+
+
+d <- c()
+d$yhat <- yhat
+d$date <- sub$date
+
+d <- data.frame(d)
+
+
+
+yhat <- predict(model, sub, interval = 'confidence')
+yhat <- as.data.frame(yhat)
+
+plot(x=date, y=yhat, dataset = d)
+
+
+ggplot(d) +
+  geom_line(aes(y=yhat, x=date))
 
 
 

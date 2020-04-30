@@ -1,0 +1,108 @@
+---
+title: "FlexDash"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+
+Covid Summary
+=======================================================================
+
+
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(tidyverse)
+library(shiny)
+
+setwd("~/Desktop/Shiv Covid")
+CovidDataSet <- read.csv('data/CovidDataSet.csv')
+
+
+plot <- function(country, dataset) {
+  sub <- dataset[dataset$country==country,]
+  
+  ggplot(sub) +
+    geom_point(aes(x=date, y=Confirmed), col='steelblue', alpha=0.7) + 
+    geom_line(aes(x=date, y=Confirmed), col='steelblue', alpha=0.7) +
+    geom_point(aes(x=date, y=Recovered), col='Darkgreen', alpha=0.7) + 
+    geom_line(aes(x=date, y=Recovered), col='Darkgreen', alpha=0.7) +
+    geom_point(aes(x=date, y=Deaths), col='Darkred', alpha=0.7) +
+    geom_line(aes(x=date, y=Deaths), col='Darkred', alpha=0.7) +
+    theme_minimal() + ggtitle(paste('Covid Report: ', country)) +
+    theme(plot.title = element_text(hjust=0.5)) +
+    labs(y='Cases', x='Date')
+  
+}
+
+
+
+
+data <- CovidDataSet %>%
+  transmute(country=Country.Region,
+            date=as.Date(as.character(Date), '%m/%d/%y'),
+            Confirmed=Confirmed,
+            Deaths=Deaths,
+            Recovered=Recovered)
+
+
+# finding top countries 
+ordered <- data %>% group_by(country) %>%
+  summarise(cases=max(Confirmed)) %>%
+  arrange(desc(cases))
+
+
+
+```
+
+
+
+
+
+Input {.sidebar}
+-----------------------------------------------------------------------
+
+Select a Country
+
+```{r input}
+
+selectInput('country_', 'Select a Country', selected='South Africa', as.character(data$country))
+```
+
+
+
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+
+
+renderPlot({
+  plot(input$country_, data)
+}
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
